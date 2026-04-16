@@ -1,0 +1,6 @@
+{
+  "name": "Cuidador 360 - FSA",
+  "description": "Interfaz para la Ficha de Señales de Alerta (FSA) del Programa Nacional Cuna Más, siguiendo la estructura de Cuidador 360.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
