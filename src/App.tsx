@@ -43,6 +43,9 @@ interface ChildRecord {
   ciai: string;
   seguroSalud: string;
   establecimiento: string;
+  nivelAnemia: 'Normal' | 'Leve' | 'Moderada' | 'Severa' | 'Faltan datos';
+  isUsuarioNuevo: boolean;
+  isDiscapacidad: boolean;
   historial: {
     [key: string]: FSAHistory;
   };
@@ -66,6 +69,9 @@ const MOCK_DATA: ChildRecord[] = [
     ciai: '-',
     seguroSalud: 'SUBSIDIADO (SIS GRATUITO)',
     establecimiento: 'SANAGORAN',
+    nivelAnemia: 'Normal',
+    isUsuarioNuevo: true,
+    isDiscapacidad: false,
     historial: {
       '2': { fecha: '15/11/2023', observacion: 'Ok' },
       '4': { fecha: '06/02/2024', observacion: 'Ok' },
@@ -90,6 +96,9 @@ const MOCK_DATA: ChildRecord[] = [
     ciai: 'CIAI TAMBO',
     seguroSalud: 'ESSALUD',
     establecimiento: 'TAMBO I-1',
+    nivelAnemia: 'Leve',
+    isUsuarioNuevo: false,
+    isDiscapacidad: true,
     historial: {
       '2': { fecha: '15/03/2024', observacion: 'Sin Aplicacion' },
       '4': { fecha: '06/05/2024', observacion: 'Ok' },
@@ -114,6 +123,9 @@ const MOCK_DATA: ChildRecord[] = [
     ciai: '-',
     seguroSalud: 'SUBSIDIADO (SIS GRATUITO)',
     establecimiento: 'HUANOQUITE',
+    nivelAnemia: 'Moderada',
+    isUsuarioNuevo: false,
+    isDiscapacidad: false,
     historial: {
       '2': { fecha: '15/11/2023', observacion: 'Ok' },
       '4': { fecha: '11/01/2024', observacion: 'Ok' },
@@ -138,6 +150,9 @@ const MOCK_DATA: ChildRecord[] = [
     ciai: 'CIAI PUQUIO',
     seguroSalud: 'SIS',
     establecimiento: 'PUQUIO',
+    nivelAnemia: 'Normal',
+    isUsuarioNuevo: false,
+    isDiscapacidad: false,
     historial: {
       '2': { fecha: '01/03/2023', observacion: 'Ok' },
       '4': { fecha: '01/05/2023', observacion: 'Ok' },
@@ -162,6 +177,9 @@ const MOCK_DATA: ChildRecord[] = [
     ciai: '-',
     seguroSalud: 'SIS',
     establecimiento: 'SINGA',
+    nivelAnemia: 'Faltan datos',
+    isUsuarioNuevo: true,
+    isDiscapacidad: false,
     historial: {
       '2': { fecha: '10/10/2025', observacion: 'Ok' },
       '4': { fecha: '10/12/2025', observacion: 'Ok' },
@@ -186,6 +204,9 @@ const MOCK_DATA: ChildRecord[] = [
     ciai: 'CIAI CHALLHUA',
     seguroSalud: 'SIS',
     establecimiento: 'CHALLHUAHUACHO',
+    nivelAnemia: 'Normal',
+    isUsuarioNuevo: false,
+    isDiscapacidad: false,
     historial: {
       '2': { fecha: '12/04/2023', observacion: 'Ok' },
       '4': { fecha: '12/06/2023', observacion: 'Ok' },
@@ -210,6 +231,9 @@ const MOCK_DATA: ChildRecord[] = [
     ciai: '-',
     seguroSalud: 'SIS',
     establecimiento: 'NAUTA',
+    nivelAnemia: 'Normal',
+    isUsuarioNuevo: false,
+    isDiscapacidad: true,
     historial: {
       '2': { fecha: '20/08/2024', observacion: 'Ok' },
       '4': { fecha: '20/10/2024', observacion: 'Ok' },
@@ -234,6 +258,9 @@ const MOCK_DATA: ChildRecord[] = [
     ciai: 'CIAI JULIACA',
     seguroSalud: 'ESSALUD',
     establecimiento: 'JULIACA',
+    nivelAnemia: 'Leve',
+    isUsuarioNuevo: true,
+    isDiscapacidad: false,
     historial: {
       '2': { fecha: '05/01/2026', observacion: 'Ok' },
       '4': { fecha: '', observacion: 'Pendiente' },
@@ -341,6 +368,13 @@ export default function App() {
   const [selectedChild, setSelectedChild] = useState<ChildRecord | null>(null);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof ChildRecord | null, direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Advanced Filter Values
+  const [filterAnemia, setFilterAnemia] = useState('Todos');
+  const [filterUsuarioNuevo, setFilterUsuarioNuevo] = useState(false);
+  const [filterDiscapacidad, setFilterDiscapacidad] = useState(false);
+  const [filterEstadoFSA, setFilterEstadoFSA] = useState('Todos');
 
   const handleSort = (key: keyof ChildRecord) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -357,14 +391,23 @@ export default function App() {
     if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
-  }).filter(item => 
-    item.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.usuario.includes(searchTerm)
-  );
+  }).filter(item => {
+    const matchesSearch = item.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || item.usuario.includes(searchTerm);
+    const matchesAnemia = filterAnemia === 'Todos' || item.nivelAnemia === filterAnemia;
+    const matchesUsuarioNuevo = !filterUsuarioNuevo || item.isUsuarioNuevo;
+    const matchesDiscapacidad = !filterDiscapacidad || item.isDiscapacidad;
+    const matchesEstadoFSA = filterEstadoFSA === 'Todos' || item.estado === filterEstadoFSA;
+    
+    return matchesSearch && matchesAnemia && matchesUsuarioNuevo && matchesDiscapacidad && matchesEstadoFSA;
+  });
 
   const clearFilters = () => {
     setSearchTerm('');
     setSortConfig({ key: null, direction: 'asc' });
+    setFilterAnemia('Todos');
+    setFilterUsuarioNuevo(false);
+    setFilterDiscapacidad(false);
+    setFilterEstadoFSA('Todos');
   };
 
   const renderFSACell = (hist: FSAHistory | undefined) => {
@@ -485,32 +528,81 @@ export default function App() {
             </div>
 
             {/* Search & Advanced Filters */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <button className="bg-[#0095FF] hover:bg-[#0084e6] text-white px-5 py-2 rounded-full text-xs font-bold transition-all shadow-sm">
-                Filtros avanzados
-              </button>
-
-              <div className="flex items-center gap-2 flex-1 max-w-md">
-                <div className="relative flex-1">
-                  <input 
-                    type="text" 
-                    placeholder="Buscar DNI..." 
-                    className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/30"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <button className="bg-[#0095FF] hover:bg-[#0084e6] text-white px-5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all">
-                  <Search size={16} />
-                  Buscar
-                </button>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <button 
-                  className="text-gray-500 hover:text-gray-700 px-3 py-1.5 text-xs font-bold transition-all"
-                  onClick={clearFilters}
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className={`bg-[#0095FF] hover:bg-[#0084e6] text-white px-5 py-2 rounded-full text-xs font-bold transition-all shadow-sm flex items-center gap-2`}
                 >
-                  Limpiar
+                  Filtros avanzados
+                  <ChevronDown className={`transition-transform duration-300 ${showAdvancedFilters ? 'rotate-180' : ''}`} size={14} />
                 </button>
+
+                <div className="flex items-center gap-2 flex-1 max-w-md">
+                  <div className="relative flex-1">
+                    <input 
+                      type="text" 
+                      placeholder="Buscar DNI..." 
+                      className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <button className="bg-[#0095FF] hover:bg-[#0084e6] text-white px-5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all">
+                    <Search size={16} />
+                    Buscar
+                  </button>
+                  <button 
+                    className="text-gray-500 hover:text-gray-700 px-3 py-1.5 text-xs font-bold transition-all"
+                    onClick={clearFilters}
+                  >
+                    Limpiar
+                  </button>
+                </div>
               </div>
+
+              {/* Advanced Filters Panel */}
+              <AnimatePresence>
+                {showAdvancedFilters && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden space-y-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-4 pt-2">
+                      <div className="relative">
+                        <select 
+                          value={filterEstadoFSA}
+                          onChange={(e) => setFilterEstadoFSA(e.target.value)}
+                          className="appearance-none border-2 border-gray-300 rounded-full py-1.5 px-6 pr-10 text-xs font-medium text-gray-700 focus:outline-none focus:border-[#0095FF] transition-colors cursor-pointer min-w-[200px]"
+                        >
+                          <option value="Todos">Estado FSA</option>
+                          <option value="COMPLETADO">COMPLETADO</option>
+                          <option value="EN RANGO - PENDIENTE">EN RANGO - PENDIENTE</option>
+                          <option value="VENCIDO - PENDIENTE">VENCIDO - PENDIENTE</option>
+                          <option value="PRÓXIMAMENTE">PRÓXIMAMENTE</option>
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
+                      </div>
+
+                      <button 
+                        onClick={() => setFilterUsuarioNuevo(!filterUsuarioNuevo)}
+                        className={`border-2 rounded-full py-1.5 px-6 text-xs font-medium transition-all ${filterUsuarioNuevo ? 'bg-[#0095FF] text-white border-[#0095FF]' : 'border-[#0095FF] text-[#0095FF]'}`}
+                      >
+                        Usuario Nuevo
+                      </button>
+
+                      <button 
+                        onClick={() => setFilterDiscapacidad(!filterDiscapacidad)}
+                        className={`border-2 rounded-full py-1.5 px-6 text-xs font-medium transition-all ${filterDiscapacidad ? 'bg-[#0095FF] text-white border-[#0095FF]' : 'border-[#0095FF] text-[#0095FF]'}`}
+                      >
+                        Discapacidad
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Legend */}
